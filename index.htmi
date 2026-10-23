@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <base target="_top">
+  <?!= include('Styles'); ?>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --red: #dc1f32;
+      --red-dark: #b91528;
+      --red-light: #fff0f2;
+      --ink: #17233d;
+      --muted: #71809a;
+      --line: #e2e7f0;
+      --bg: #f4f6fb;
+      --green: #168b59;
+      --yellow: #f5a400;
+      --blue: #00a6d9;
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Sarabun", Tahoma, sans-serif;
+      font-size: 14px;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      transition: .2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .app {
+      width: min(1600px, 100%);
+      margin: auto;
+      padding: 22px 3.4%;
+    }
+
+    /* Header */
+    .hero {
+      min-height: 145px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 25px 30px;
+      border: 1px solid #ffd3d9;
+      border-left: 5px solid var(--red);
+      border-radius: 22px;
+      background: linear-gradient(110deg, #fff 0%, #fffafb 65%, #fff1f3 100%);
+      box-shadow: 0 8px 25px rgba(36, 48, 76, .035);
+    }
+
+    .hero-brand {
+      display: flex;
+      align-items: center;
+      gap: 17px;
+    }
+
+    .brand-icon {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      flex-shrink: 0;
+      border-radius: 17px;
+      color: white;
+      font-size: 28px;
+      background: linear-gradient(145deg, #f02b3d, #bd1025);
+      box-shadow: 0 8px 18px rgba(220, 31, 50, .2);
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 7px;
+      padding: 5px 11px;
+      border-radius: 30px;
+      color: var(--red);
+      background: var(--red-light);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .6px;
+    }
+
+    h1, h2, p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 3px;
+      font-size: clamp(23px, 2.3vw, 32px);
+      font-weight: 800;
+      letter-spacing: -.5px;
+    }
+
+    .hero p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .victory {
+      flex-shrink: 0;
+      padding: 11px 18px;
+      border-radius: 30px;
+      color: white;
+      background: linear-gradient(90deg, #ffad00, #ff8500);
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 6px 14px rgba(255, 153, 0, .16);
+    }
+
+    /* Statistics */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin: 18px 0 22px;
+    }
+
+    .stat-card {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      min-height: 85px;
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 6px 20px rgba(31, 43, 68, .04);
+    }
+
+    .stat-icon {
+      display: grid;
+      place-items: center;
+      width: 43px;
+      height: 43px;
+      flex-shrink: 0;
+      border-radius: 14px;
+      font-size: 20px;
+    }
+
+    .stat-icon.red { color: var(--red); background: #fff0f2; }
+    .stat-icon.yellow { color: #bc8100; background: #fff6dd; }
+    .stat-icon.orange { color: #d66b00; background: #fff0df; }
+    .stat-icon.green { color: var(--green); background: #e7f7ef; }
+
+    .stat-card span {
+      display: block;
+      margin-bottom: 1px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stat-card strong {
+      display: block;
+      font-size: 27px;
+      line-height: 1.2;
+      font-weight: 800;
+    }
+
+    .green-text { color: var(--green); }
+
+    /* Navigation */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+      padding: 6px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      border: 0;
+      border-radius: 10px;
+      color: #65738b;
+      background: transparent;
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      color: #fff;
+      background: var(--red);
+      box-shadow: 0 4px 10px rgba(220, 31, 50, .18);
+    }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .panel {
+      margin-bottom: 22px;
+      padding: 23px 24px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: #fff;
+      box-shadow: 0 7px 24px rgba(31, 43, 68, .035);
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .section-heading h2 { margin: 0; font-size: 21px; font-weight: 800; }
+    .section-heading p { margin: 4px 0 0; }
+    .heading-icon { color: #f04455; font-size: 22px; }
+    .section-heading-between { justify-content: space-between; align-items: center; }
+
+    .muted { color: var(--muted); font-size: 12px; }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      color: #4d5d77;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    input, select {
+      width: 100%;
+      min-width: 0;
+      height: 43px;
+      padding: 0 13px;
+      border: 1px solid #d8dfeb;
+      border-radius: 11px;
+      outline: none;
+      color: var(--ink);
+      background: #fff;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    input:focus, select:focus {
+      border-color: #e65a69;
+      box-shadow: 0 0 0 3px rgba(220, 31, 50, .08);
+    }
+
+    .checker { color: var(--red); }
+    .checker input { border-color: #f3a0a9; background: #fffafb; }
+
+    .quick {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .secondary {
+      padding: 9px 13px;
+      border: 1px solid #d8dfeb;
+      border-radius: 10px;
+      color: #53637b;
+      background: #fff;
+      white-space: nowrap;
+    }
+
+    .secondary:hover { border-color: #f19aa4; color: var(--red); }
+
+    .search-row { display: flex; gap: 10px; margin-bottom: 15px; }
+    .search { flex: 1; min-width: 0; }
+
+    .count-badge {
+      flex-shrink: 0;
+      padding: 8px 12px;
+      border-radius: 30px;
+      color: var(--red);
+      background: var(--red-light);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 13px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; }
+    thead { background: #f8f9fc; }
+    th { padding: 15px 12px; border-bottom: 1px solid var(--line); color: #586782; font-size: 12px; font-weight: 700; text-align: left; white-space: nowrap; }
+    td { padding: 12px; border-bottom: 1px solid #edf0f5; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #fffafb; }
+    .empty { padding: 30px; color: var(--muted); text-align: center; }
+
+    .room-grid, .activity-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    footer { padding: 18px 0 5px; color: #96a0b2; font-size: 12px; text-align: center; }
+
+    /* Modal & Toast */
+    .modal-backdrop {
+      position: fixed; z-index: 1000; inset: 0; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(17, 27, 46, .45);
+    }
+    .modal-backdrop[aria-hidden="false"] { display: flex; }
+    .modal { width: min(700px, 100%); max-height: 85vh; overflow: auto; border-radius: 18px; background: #fff; box-shadow: 0 20px 70px rgba(0, 0, 0, .2); }
+    .modal-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 22px; border-bottom: 1px solid var(--line); }
+    .close-modal { width: 36px; height: 36px; border: 0; border-radius: 10px; color: #65738b; background: #f3f5f9; font-size: 23px; }
+    .modal-content { padding: 22px; }
+
+    .toast {
+      position: fixed; z-index: 2000; right: 20px; bottom: 20px; max-width: calc(100% - 40px); padding: 13px 18px; border-radius: 12px; color: white; background: #25334b; box-shadow: 0 8px 25px rgba(0, 0, 0, .15);
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .app { padding: 14px; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .filters { grid-template-columns: 1fr; }
+      .hero { align-items: flex-start; padding: 20px; }
+      .victory { display: none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="hero">
+      <div class="hero-brand">
+        <div class="brand-icon">🔥</div>
+        <div class="hero-content">
+          <span class="eyebrow">RED HOUSE COMMUNITY&nbsp; • &nbsp;SPORTS DAY 2026</span>
+          <h1 id="appName">ระบบจัดการกีฬาสี</h1>
+          <p id="todayText">ระบบเช็กชื่อเข้าเชียร์และข้อมูลกีฬาประจำวัน</p>
+        </div>
+      </div>
+      <div class="victory">🏆 CRIMSON VICTORY</div>
+    </header>
+
+    <!-- Dashboard statistics -->
+    <section class="stats">
+      <article class="stat-card">
+        <div class="stat-icon red">👥</div>
+        <div><span>นักเรียนทั้งหมด</span><strong id="totalStudents">—</strong></div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-icon yellow">🏫</div>
+        <div><span>ห้องเรียนทั้งหมด</span><strong id="totalRooms">—</strong></div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-icon orange">🏆</div>
+        <div><span>รายการกีฬา</span><strong id="totalActivities">—</strong></div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-icon green">☑</div>
+        <div><span>เช็กชื่อแล้ววันนี้</span><strong class="green-text" id="checkedToday">—</strong></div>
+      </article>
+    </section>
+
+    <!-- Navigation -->
+    <nav class="tabs">
+      <button class="tab active" data-page="attendance">เช็กชื่อ</button>
+      <button class="tab" data-page="students">รายชื่อนักเรียน</button>
+      <button class="tab" data-page="activities">รายการกีฬา</button>
+      <button class="tab" data-page="schedule">ตารางเวลา</button>
+    </nav>
+
+    <main>
+      <!-- Attendance -->
+      <section class="page active" id="page-attendance">
+        <div class="panel">
+          <div class="section-heading">
+            <span class="heading-icon">▼</span>
+            <h2>ตัวเลือกการเช็กชื่อ</h2>
+          </div>
+          <div class="filters">
+            <label>วันที่เช็กชื่อ <input type="date" id="attendanceDate"></label>
+            <label>ห้องเรียน <select id="roomFilter"><option value="">ทุกห้องเรียน</option></select></label>
+            <label class="checker">ผู้เช็กชื่อ (พี่สตาฟ) * <input id="checkerName" maxlength="80" placeholder="กรอกชื่อผู้เช็กชื่อ"></label>
+          </div>
+          <div class="quick">
+            <span id="attendanceCount">กำลังโหลดรายชื่อ...</span>
+            <button class="secondary" id="refreshAttendance">↻ รีเฟรชข้อมูล</button>
+          </div>
+        </div>
+
+        <div class="panel student-panel">
+          <div class="section-heading section-heading-between">
+            <div>
+              <h2>▣ รายชื่อนักเรียนและเช็กชื่อ</h2>
+              <p class="muted">บันทึกสถานะรายคน ระบบจะแสดงเวลาและชื่อผู้เช็กหลังบันทึกสำเร็จ</p>
+            </div>
+            <span class="count-badge" id="studentCountBadge">รายชื่อนักเรียน</span>
+          </div>
+          <div class="search-row">
+            <input id="studentSearch" class="search" placeholder="⌕ ค้นหาชื่อ รหัสนักเรียน หรือเลขที่...">
+            <button class="secondary" id="clearSearch">× ล้างคำค้น</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>รหัสนักเรียน</th>
+                  <th>ห้อง</th>
+                  <th>เลขที่</th>
+                  <th>ชื่อ - นามสกุล</th>
+                  <th>สถานะเช็กชื่อ</th>
+                  <th>เวลา / ผู้เช็กชื่อ</th>
+                </tr>
+              </thead>
+              <tbody id="attendanceList">
+                <tr><td colspan="7" class="empty">กำลังโหลดข้อมูล...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Students -->
+      <section class="page" id="page-students">
+        <div class="panel">
+          <div class="section-heading"><h2>รายชื่อนักเรียน</h2></div>
+          <input id="studentSearchPage" class="search" placeholder="ค้นหาชื่อ นามสกุล รหัส หรือห้องเรียน">
+          <div id="studentList" class="room-grid" style="margin-top: 15px;"></div>
+        </div>
+      </section>
+
+      <!-- Activities -->
+      <section class="page" id="page-activities">
+        <div class="panel">
+          <div class="section-heading"><h2>รายการกีฬา</h2></div>
+          <p class="muted">กีฬาและกำหนดการแข่งขัน</p>
+          <div class="activity-grid" id="activityList" style="margin-top: 15px;"></div>
+        </div>
+      </section>
+
+      <!-- Schedule -->
+      <section class="page" id="page-schedule">
+        <div class="panel">
+          <div class="section-heading"><h2>ตารางเวลาแต่ละห้อง</h2></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ห้อง</th>
+                  <th>จันทร์</th>
+                  <th>อังคาร</th>
+                  <th>พุธ</th>
+                  <th>พฤหัสบดี</th>
+                  <th>ศุกร์</th>
+                  <th>หมายเหตุ</th>
+                </tr>
+              </thead>
+              <tbody id="scheduleBody"><tr><td colspan="7" class="empty">กำลังโหลดข้อมูล...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>RED HOUSE COMMUNITY · SPORTS DAY 2026</footer>
+  </div>
+
+  <!-- Modal -->
+  <div id="modalBackdrop" class="modal-backdrop" onclick="backdropClose(event)" aria-hidden="true">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <header class="modal-head">
+        <div>
+          <div class="eyebrow">DETAILS</div>
+          <h2 id="modalTitle">รายละเอียด</h2>
+          <p id="modalSubtitle" class="muted"></p>
+        </div>
+        <button class="close-modal" onclick="closeModal()">×</button>
+      </header>
+      <div id="modalContent" class="modal-content"></div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+  <?!= include('Client'); ?>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // ตั้งค่าวันที่ปัจจุบันในช่องวันที่เช็กชื่อ
+      const todayStr = new Date().toISOString().split('T')[0];
+      const dateInput = document.getElementById('attendanceDate');
+      if (dateInput) dateInput.value = todayStr;
+
+      // จัดการระบบเปลี่ยนหน้า (Tabs)
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          
+          const pageId = 'page-' + tab.getAttribute('data-page');
+          document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+          const targetPage = document.getElementById(pageId);
+          if (targetPage) targetPage.classList.add('active');
+        });
+      });
+
+      // ปุ่มรีเฟรชตัวอย่าง
+      document.getElementById('refreshAttendance').addEventListener('click', () => {
+        showToast('รีเฟรชข้อมูลเรียบร้อย');
+      });
+    });
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.display = 'block';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3000);
+    }
+
+    function closeModal() {
+      document.getElementById('modalBackdrop').setAttribute('aria-hidden', 'true');
+    }
+
+    function backdropClose(event) {
+      if (event.target.id === 'modalBackdrop') {
+        closeModal();
+      }
+    }
+  </script>
+</body>
+</html>
