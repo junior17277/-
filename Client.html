@@ -1,0 +1,187 @@
+<script>
+const $ = id => document.getElementById(id);
+const STATUS = [['present','มา'],['late','สาย'],['absent','ขาด'],['leave','ลา']];
+let initialData=null, allStudents=[], activities=[], assignments=[], schedules=[], toastTimer=null, selectedRoom='';
+document.addEventListener('DOMContentLoaded',()=>{
+  $('attendanceDate').value=new Date().toLocaleDateString('en-CA');
+  document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>showPage(btn.dataset.page)));
+  $('roomFilter').addEventListener('change',loadAttendance); $('attendanceDate').addEventListener('change',loadAttendance); $('refreshAttendance').addEventListener('click',loadAttendance); $('studentSearch').addEventListener('input',renderStudentSearch);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+  google.script.run.withSuccessHandler(data=>{
+    initialData=data; $('appName').textContent=data.appName||'ระบบจัดการกีฬาสี'; $('todayText').textContent='วันนี้ '+data.today;
+    $('totalStudents').textContent=data.totalStudents; $('totalRooms').textContent=data.totalRooms; $('totalActivities').textContent=data.totalActivities; $('checkedToday').textContent=data.checkedToday;
+    fillRooms(data.rooms||[]); loadAttendance(); loadStudents(); loadActivities(); loadSchedules();
+  }).withFailureHandler(showError).getInitialData();
+});
+
+function showPage(name){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.page===name));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+name))}
+function fillRooms(rooms){$('roomFilter').innerHTML='<option value="">ทุกห้อง</option>'+rooms.map(r=>`<option value="${esc(r.room_id)}">${esc(r.room_name||r.room_id)}${r.color_name?' · '+esc(r.color_name):''}</option>`).join('')}
+function loadAttendance(){$('attendanceList').innerHTML='<div class="empty">กำลังโหลดรายชื่อ...</div>';google.script.run.withSuccessHandler(renderAttendance).withFailureHandler(showError).getAttendance($('attendanceDate').value,$('roomFilter').value)}
+function renderAttendance(list){$('attendanceCount').textContent='ทั้งหมด '+list.length+' คน';if(!list.length){$('attendanceList').innerHTML='<div class="empty">ไม่พบรายชื่อนักเรียนในห้องนี้ ตรวจสอบชีต 01_Students</div>';return} $('attendanceList').innerHTML=list.map(s=>{const status=s.attendance.status||'pending';const buttons=STATUS.map(([key,label])=>`<button class="status-btn ${status===key?'selected':''}" data-status="${key}" onclick="markAttendance('${escAttr(s.student_id)}','${key}',this)">${label}</button>`).join('');const checked=status!=='pending'?` · ${esc(s.attendance.check_time||'')} · ${esc(s.attendance.checked_by||'')}`:' · ยังไม่เช็ก';return `<article class="student-row" id="stu-${escAttr(s.student_id)}"><div><div class="student-name">${esc(s.first_name)} ${esc(s.last_name)}</div><div class="student-meta">เลขที่ ${esc(s.number||'-')} · ห้อง ${esc(s.room_id)} · รหัส ${esc(s.student_id)}${checked}</div></div><div class="statuses">${buttons}</div></article>`}).join('')}
+
+function markAttendance(studentId, status, button) {
+  const checker = $('checkerName').value.trim();
+
+  if (!checker) {
+    showToast('กรุณากรอกชื่อผู้เช็กชื่อก่อน', true);
+    $('checkerName').focus();
+    return;
+  }
+
+  const row = button.closest('.student-row');
+  const wasSelected = button.classList.contains('selected');
+
+  // กดสถานะเดิมซ้ำ = ยกเลิกการเช็กชื่อ
+  const newStatus = wasSelected ? 'pending' : status;
+
+  row.querySelectorAll('.status-btn').forEach(b => {
+    b.disabled = true;
+  });
+
+  google.script.run
+    .withSuccessHandler(result => {
+      row.querySelectorAll('.status-btn').forEach(b => {
+        b.disabled = false;
+        b.classList.toggle(
+          'selected',
+          newStatus !== 'pending' && b.dataset.status === newStatus
+        );
+      });
+
+      const meta = row.querySelector('.student-meta');
+
+      if (meta) {
+        meta.textContent = newStatus === 'pending'
+          ? meta.textContent.replace(/ · .*$/, ' · ยังไม่เช็ก')
+          : meta.textContent.replace(/ · .*$/, '') +
+            ' · ' + result.check_time + ' · ' + result.checked_by;
+      }
+
+      showToast(
+        newStatus === 'pending'
+          ? 'ยกเลิกสถานะเรียบร้อย'
+          : 'บันทึกสถานะเรียบร้อย'
+      );
+
+      refreshStats();
+    })
+    .withFailureHandler(err => {
+      row.querySelectorAll('.status-btn').forEach(b => {
+        b.disabled = false;
+      });
+      showError(err);
+    })
+    .saveAttendance(
+      $('attendanceDate').value,
+      studentId,
+      newStatus,
+      checker,
+      ''
+    );
+}
+
+function refreshStats(){google.script.run.withSuccessHandler(data=>{$('checkedToday').textContent=data.checkedToday}).getInitialData()}
+function loadStudents(){google.script.run.withSuccessHandler(list=>{allStudents=list;renderStudentSearch()}).withFailureHandler(showError).getStudents('')}
+function roomLabel(roomId){const r=(initialData?.rooms||[]).find(x=>String(x.room_id)===String(roomId));return r?.room_name||roomId||'ไม่ระบุห้อง'}
+function renderStudentSearch(){const q=$('studentSearch').value.trim().toLowerCase();if(q){const list=allStudents.filter(s=>[s.student_id,s.number,s.first_name,s.last_name,s.room_id,roomLabel(s.room_id)].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,100);$('studentList').innerHTML=list.length?list.map(s=>`<article class="student-row"><div><div class="student-name">${esc(s.first_name)} ${esc(s.last_name)}</div><div class="student-meta">เลขที่ ${esc(s.number||'-')} · ห้อง ${esc(roomLabel(s.room_id))} · รหัส ${esc(s.student_id)}</div></div><button class="secondary" onclick="showStudentActivities('${escAttr(s.student_id)}')">ดูกีฬาที่ลง ↗</button></article>`).join(''):'<div class="empty">ไม่พบรายชื่อนักเรียน</div>';return}
+  const roomMap=new Map();allStudents.forEach(s=>{const id=String(s.room_id||'ไม่ระบุ');if(!roomMap.has(id))roomMap.set(id,[]);roomMap.get(id).push(s)});const rooms=[...(initialData?.rooms||[])];const ids=[...roomMap.keys()].sort((a,b)=>a.localeCompare(b,'th',{numeric:true}));$('studentList').innerHTML=ids.length?ids.map(id=>{const r=rooms.find(x=>String(x.room_id)===id)||{};const count=roomMap.get(id).length;return `<button class="room-card" onclick="openRoom('${escAttr(id)}')"><div class="room-top"><span class="room-icon">▦</span><span class="room-count">${count} คน</span></div><h3>${esc(r.room_name||id)}</h3><p>${esc(r.color_name||'รายชื่อนักเรียน')}</p><div class="card-action"><span>เปิดดูรายชื่อ</span><span>↗</span></div></button>`}).join(''):'<div class="empty">ยังไม่มีรายชื่อนักเรียน</div>'}
+function openRoom(roomId){selectedRoom=roomId;const list=allStudents.filter(s=>String(s.room_id||'ไม่ระบุ')===String(roomId)).sort((a,b)=>Number(a.number||0)-Number(b.number||0));const room=(initialData?.rooms||[]).find(r=>String(r.room_id)===String(roomId))||{};const title=room.room_name||roomId;openModal(title,`${list.length} คน · รายชื่อนักเรียนในห้อง`, `<div class="room-detail-head"><div><strong>${esc(title)}</strong><div class="muted">${esc(room.color_name||'รายชื่อนักเรียน')}</div></div><strong>${list.length} คน</strong></div><div class="room-detail-list">${list.map(s=>`<div class="mini-student"><span class="number-chip">${esc(s.number||'—')}</span><div><div class="student-name">${esc(s.first_name)} ${esc(s.last_name)}</div><div class="student-meta">รหัส ${esc(s.student_id)}</div></div><button class="secondary" onclick="showStudentActivities('${escAttr(s.student_id)}')">ดูกีฬา</button></div>`).join('')}</div>`)}
+function showStudentActivities(studentId){google.script.run.withSuccessHandler(data=>{const s=data?.student||allStudents.find(x=>String(x.student_id)===String(studentId));const as=data?.assignments||[];const listHtml=as.length?`<div class="roster">${as.map(a=>`<div class="roster-item"><span class="number-chip">🏅</span><div><div class="roster-name">${esc(a.activity?.activity_name||'ไม่ระบุชื่อกีฬา')}</div><div class="roster-sub">${esc(a.activity?.date||'ไม่ระบุวันที่')}${a.activity?.venue?' · '+esc(a.activity.venue):''}</div></div></div>`).join('')}</div>`:'<div class="empty">นักเรียนคนนี้ยังไม่มีรายการกีฬาที่ลงไว้</div>';openModal(`${s?.first_name||''} ${s?.last_name||''}`.trim()||'รายการกีฬาที่ลง',`ห้อง ${esc(roomLabel(s?.room_id))} · ${as.length} รายการ`,listHtml)}).withFailureHandler(showError).getStudentDetail(studentId)}
+function loadActivities(){google.script.run.withSuccessHandler(list=>{activities=list;google.script.run.withSuccessHandler(as=>{assignments=as||[];renderActivities()}).withFailureHandler(showError).getAssignments('')}).withFailureHandler(showError).getActivities()}
+function renderActivities(){const counts={};assignments.forEach(a=>{const id=String(a.activity?.activity_id||a.activity_id||'');if(id)counts[id]=(counts[id]||0)+1});$('activityList').innerHTML=activities.length?activities.map(a=>{const count=counts[String(a.activity_id)]||0;return `<button class="activity-card" onclick="openActivity('${escAttr(a.activity_id)}')"><div class="sport-head"><span class="sport-icon">🏅</span><span class="sport-count"><strong>${count}</strong> คน</span></div><h3>${esc(a.activity_name||'ไม่ระบุชื่อกีฬา')}</h3><p>${esc(a.date||'ไม่ระบุวันที่')}${a.start_time?' · '+esc(a.start_time):''}</p><div class="card-action"><span>ดูรายชื่อผู้ลงกีฬา</span><span>↗</span></div></button>`}).join(''):'<div class="empty">ยังไม่มีรายการกีฬาในชีต 04_Activities</div>'}
+function openActivity(activityId){const a=activities.find(x=>String(x.activity_id)===String(activityId));if(!a)return;const roster=assignments.filter(x=>String(x.activity?.activity_id||x.activity_id)===String(activityId));const studentMap=new Map(allStudents.map(s=>[String(s.student_id),s]));const list=roster.map(r=>({assignment:r,student:studentMap.get(String(r.student_id))})).filter(x=>x.student).sort((a,b)=>String(a.student.room_id).localeCompare(String(b.student.room_id),'th',{numeric:true})||Number(a.student.number||0)-Number(b.student.number||0));const body=list.length?`<input class="modal-search" id="rosterSearch" placeholder="ค้นหารายชื่อในกีฬานี้..." oninput="filterRoster()"><div class="modal-summary"><span>จำนวนผู้สมัครทั้งหมด</span><strong>${list.length} คน</strong></div><div class="roster" id="rosterList">${list.map(x=>`<div class="roster-item" data-search="${escAttr([x.student.first_name,x.student.last_name,x.student.room_id,x.student.student_id].join(' ').toLowerCase())}"><span class="number-chip">${esc(x.student.number||'—')}</span><div><div class="roster-name">${esc(x.student.first_name)} ${esc(x.student.last_name)}</div><div class="roster-sub">ห้อง ${esc(roomLabel(x.student.room_id))} · รหัส ${esc(x.student.student_id)}</div></div></div>`).join('')}</div>`:'<div class="modal-summary"><span>จำนวนผู้สมัครทั้งหมด</span><strong>0 คน</strong></div><div class="empty">ยังไม่มีนักเรียนลงรายการกีฬานี้</div>';openModal(a.activity_name||'รายชื่อผู้ลงกีฬา',`${a.date||'ไม่ระบุวันที่'}${a.venue?' · '+a.venue:''}`,body)}
+function filterRoster(){const q=$('rosterSearch')?.value.trim().toLowerCase()||'';document.querySelectorAll('#rosterList .roster-item').forEach(el=>el.style.display=el.dataset.search.includes(q)?'flex':'none')}
+function loadSchedules(){google.script.run.withSuccessHandler(list=>{$('scheduleBody').innerHTML=list.length?list.map(s=>`<tr><td>${esc(s.room_name||s.room_id)}</td><td>${esc(s.monday)}</td><td>${esc(s.tuesday)}</td><td>${esc(s.wednesday)}</td><td>${esc(s.thursday)}</td><td>${esc(s.friday)}</td><td>${esc(s.note)}</td></tr>`).join(''):'<tr><td colspan="7">ยังไม่มีข้อมูลตารางเวลา</td></tr>'}).withFailureHandler(showError).getRoomSchedules()}
+function openModal(title,subtitle,content){$('modalTitle').textContent=title;$('modalSubtitle').textContent=subtitle||'';$('modalContent').innerHTML=content;$('modalBackdrop').classList.add('open');$('modalBackdrop').setAttribute('aria-hidden','false');document.body.style.overflow='hidden'}
+function closeModal(){$('modalBackdrop').classList.remove('open');$('modalBackdrop').setAttribute('aria-hidden','true');document.body.style.overflow=''}function backdropClose(e){if(e.target===$('modalBackdrop'))closeModal()}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function escAttr(v){return esc(v).replace(/`/g,'&#96;')}
+function showToast(message,error=false){const el=$('toast');el.textContent=message;el.classList.toggle('error',error);el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3000)}function showError(err){showToast(err&&err.message?err.message:String(err||'เกิดข้อผิดพลาด'),true)}
+
+
+
+let attendancePin = '';
+
+function markAttendance(studentId, status, button) {
+  const checker = $('checkerName').value.trim();
+  const date = $('attendanceDate').value;
+
+  if (!date) {
+    showToast('กรุณาเลือกวันที่เช็กชื่อ', true);
+    return;
+  }
+
+  if (!checker) {
+    showToast('กรุณากรอกชื่อผู้เช็กชื่อก่อน', true);
+    $('checkerName').focus();
+    return;
+  }
+
+  if (!attendancePin) {
+    const pin = prompt('กรุณากรอก PIN ผู้เช็กชื่อ');
+    if (pin === null || !pin.trim()) return;
+    attendancePin = pin.trim();
+  }
+
+  const row = button.closest('.student-row');
+  const buttons = [...row.querySelectorAll('.status-btn')];
+  const wasSelected = button.classList.contains('selected');
+  const newStatus = wasSelected ? 'pending' : status;
+
+  buttons.forEach(b => b.disabled = true);
+
+  google.script.run
+    .withSuccessHandler(result => {
+      showToast(
+        newStatus === 'pending'
+          ? 'ยกเลิกสถานะเรียบร้อย'
+          : 'บันทึกสถานะเรียบร้อย'
+      );
+
+      // โหลดข้อมูลล่าสุดจากชีต เพื่อให้สถานะตรงกับเซิร์ฟเวอร์
+      loadAttendance();
+      refreshStats();
+    })
+    .withFailureHandler(err => {
+      buttons.forEach(b => b.disabled = false);
+
+      const message = err?.message || String(err || 'เกิดข้อผิดพลาด');
+      if (/PIN|รหัส|ล็อก/i.test(message)) attendancePin = '';
+
+      showToast('บันทึกไม่สำเร็จ: ' + message, true);
+    })
+    .saveAttendance(date, studentId, newStatus, checker, '', attendancePin);
+}
+
+
+function setupAttendanceDateEvents() {
+  const dateInput = document.getElementById('attendanceDate');
+  const roomFilter = document.getElementById('roomFilter');
+  const refreshButton = document.getElementById('refreshAttendance');
+
+  // เปลี่ยนวันที่เพื่อโหลดข้อมูลของวันนั้น
+  if (dateInput && !dateInput.dataset.bound) {
+    dateInput.addEventListener('change', function () {
+      loadAttendanceData();
+    });
+    dateInput.dataset.bound = '1';
+  }
+
+  // เปลี่ยนห้องเพื่อโหลดรายชื่อและสถานะใหม่
+  if (roomFilter && !roomFilter.dataset.bound) {
+    roomFilter.addEventListener('change', function () {
+      loadAttendanceData();
+    });
+    roomFilter.dataset.bound = '1';
+  }
+
+  // ปุ่มรีเฟรช
+  if (refreshButton && !refreshButton.dataset.bound) {
+    refreshButton.addEventListener('click', function () {
+      loadAttendanceData();
+    });
+    refreshButton.dataset.bound = '1';
+  }
+}
+
+
+</script>
